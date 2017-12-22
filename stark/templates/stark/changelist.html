@@ -7,6 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Title</title>
     <link rel="stylesheet" href="{% static "stark/bootstrap/css/bootstrap.css" %}" />
+
     <style>
         .list-filter a{
             display: inline-block;
@@ -80,7 +81,7 @@
         </table>
     </form>
     <div>
-        <ul class="pagination ">
+        <ul class="pagination pull_right">
             {{ cl.page_obj.bootstrap_page_html|safe }}
         </ul>
     </div>

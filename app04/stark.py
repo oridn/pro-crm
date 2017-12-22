@@ -40,6 +40,26 @@ class UserInfoConfig(v1.StarkConfig):
         v1.FilterOption('depart',condition={'id__gt':3}),
         v1.FilterOption('roles',True),
     ]
+    # 是否显示搜索
+    show_search_form = True
+    search_fields = ['name__contains', 'email__contains']
+    # 批量删除和初始化
+    show_actions = True
 
+    def multi_del(self,request):
+        pk_list = request.POST.getlist('pk')
+        self.model_class.objects.filter(id__in=pk_list).delete()
+        # return HttpResponse('删除成功')
+        return redirect("http://www.baidu.com")
+    multi_del.short_desc = "批量删除"
+
+    def multi_init(self,request):
+        pk_list = request.POST.getlist('pk')
+        #self.model_class.objects.filter(id__in=pk_list).delete()
+        # return HttpResponse('删除成功')
+        #return redirect("http://www.baidu.com")
+    multi_init.short_desc = "初始化"
+
+    actions = [multi_del, multi_init]
 
 v1.site.register(models.UserInfo,UserInfoConfig)

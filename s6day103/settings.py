@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'app01.apps.App01Config',
     'app02.apps.App02Config',
     'app04.apps.App04Config',
+     'crm.apps.CrmConfig',
 
 ]
 
@@ -124,3 +125,4 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/1.11/howto/static-files/
 
 STATIC_URL = '/static/'
+
