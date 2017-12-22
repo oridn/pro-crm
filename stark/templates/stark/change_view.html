@@ -1,5 +1,5 @@
 {% load staticfiles %}
-
+{% load change_form %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -11,7 +11,7 @@
 <body>
     <div class="container">
         <h1>修改页面</h1>
-        {% include 'stark/form.html' %}
+         {% form form  %}
     </div>
 </body>
 </html>

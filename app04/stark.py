@@ -1,3 +1,4 @@
+from django.shortcuts import HttpResponse,render,redirect
 from stark.service import v1
 from . import models
 
@@ -49,14 +50,14 @@ class UserInfoConfig(v1.StarkConfig):
     def multi_del(self,request):
         pk_list = request.POST.getlist('pk')
         self.model_class.objects.filter(id__in=pk_list).delete()
-        # return HttpResponse('删除成功')
-        return redirect("http://www.baidu.com")
+        return HttpResponse('删除成功')
+        # return redirect("http://www.baidu.com")
     multi_del.short_desc = "批量删除"
 
     def multi_init(self,request):
         pk_list = request.POST.getlist('pk')
         #self.model_class.objects.filter(id__in=pk_list).delete()
-        # return HttpResponse('删除成功')
+        return HttpResponse('删除成功')
         #return redirect("http://www.baidu.com")
     multi_init.short_desc = "初始化"
 
