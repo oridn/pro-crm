@@ -25,41 +25,15 @@ class DepartmentConfig(v1.StarkConfig):
 v1.site.register(models.Department,DepartmentConfig)
 
 class UserInfoConfig(v1.StarkConfig):
-    edit_link = ["name"]
+    list_display = ['name','username','email','depart']
+    edit_link = ['name']
+    comb_filter = [
+        v1.FilterOption('depart',text_func_name=lambda x:str(x),val_text_func_name=lambda x:x.code)
+        # v1.FilterOption('depart')
+    ]
 
-    def depart_dispaly(self,obj=None,is_header=False):
-        if is_header:
-            return "所属部门"
-        return obj.depart.title
-
-    def get_model_form_class(self):
-        '''自定义ModelForm'''
-        class MyModelForm(ModelForm):
-            class Meta:
-                model = models.UserInfo
-                fields = "__all__"
-                error_messages = {
-                    "name":{"required":"姓名不能为空"},
-                    "username":{"required":"用户名不能为空"},
-                    "password":{"required":"密码不能为空"},
-                    "email":{"required":"邮箱不能为空","invalid":"邮箱格式不正确"},
-                    "depart":{"required":"用户名不能不选",},
-                }
-        return MyModelForm
-
-    list_display = ["name","username","email",depart_dispaly]
-
-    # comb_filter = [
-    #     v1.FilterOption("depart",val_func_name=lambda x: x.code,),
-    # ]  #分组搜索
-    #
-    # def delete_view(self, request,nid, *args, **kwargs):
-    #     '''重写视图函数'''
-    #     if request.method=="GET":
-    #         return render(request,"stark/delete_view.html",{"quxiao_url":self.get_list_url()})
-    #     else:
-    #         self.model_class.objects.filter(pk=nid).delete()
-    #         return redirect(self.get_list_url())
+    search_fields = ['name__contains','email__contains']
+    show_search_form = True
 
 v1.site.register(models.UserInfo,UserInfoConfig)
 
@@ -128,63 +102,77 @@ class ClassListConfig(v1.StarkConfig):
 v1.site.register(models.ClassList,ClassListConfig)
 
 class CustomerConfig(v1.StarkConfig):
+
     def display_gender(self,obj=None,is_header=False):
         if is_header:
-            return "性别"
+            return '性别'
         return obj.get_gender_display()
+
     def display_education(self,obj=None,is_header=False):
         if is_header:
-            return "学历"
+            return '学历'
         return obj.get_education_display()
 
-    def display_status(self, obj=None, is_header=False):
+    def display_course(self,obj=None,is_header=False):
         if is_header:
-            return '状态'
-        return obj.get_status_display()
-    def recode(self, obj=None, is_header=False):
-        if is_header:
-            return "跟进记录"
-        return mark_safe("<a href='/index/crm/consultrecord/?customer=%s'>查看跟进记录</a>" %(obj.pk,))
-
-    def display_course(self,obj=None, is_header=False):
-        if is_header:
-            return "咨询课程"
+            return '咨询课程'
         course_list = obj.course.all()
         html = []
+        # self.request.GET
+        # self._query_param_key
+        # 构造QueryDict
+        # urlencode()
         for item in course_list:
             temp = "<a style='display:inline-block;padding:3px 5px;border:1px solid blue;margin:2px;' href='/stark/crm/customer/%s/%s/dc/'>%s X</a>" %(obj.pk,item.pk,item.name)
             html.append(temp)
+
         return mark_safe("".join(html))
-    def extra_urls(self):
-        # 由于没有路径，我们可以额外的增加一个路径,重新走一个delete_course视图
-        app_model_name = (self.model_class._meta.app_label, self.model_class._meta.model_name)
-        urlpatterns =[
-            url(r'^(\d+)/(\d+)/dc/$', self.wrap(self.delete_course), name="%s_%s_delete" % app_model_name)
-        ]
-        return urlpatterns
-    def delete_course(self, request,customer_id,course_id):
-        '''
+
+    def display_status(self,obj=None,is_header=False):
+        if is_header:
+            return '状态'
+        return obj.get_status_display()
+
+    def record(self,obj=None,is_header=False):
+        if is_header:
+            return '跟进记录'
+        # /stark/crm/consultrecord/?customer=11
+        return mark_safe("<a href='/stark/crm/consultrecord/?customer=%s'>查看跟进记录</a>" %(obj.pk,))
+
+    list_display = ['qq','name',display_gender,display_education,display_course,display_status,record]
+    edit_link = ['qq']
+
+
+
+    def delete_course(self,request,customer_id,course_id):
+        """
         删除当前用户感兴趣的课程
         :param request:
         :param customer_id:
         :param course_id:
         :return:
-        '''
+        """
         customer_obj = self.model_class.objects.filter(pk=customer_id).first()
         customer_obj.course.remove(course_id)
+        # 跳转回去时，要保留原来的搜索条件
         return redirect(self.get_list_url())
 
-    list_display = ["qq","name","graduation_school",display_course,display_gender,display_status,display_education,recode]
-    edit_link = ["name","graduation_school"]
-    search_fields = ["name__contains"]
+    def extra_url(self):
+        app_model_name = (self.model_class._meta.app_label, self.model_class._meta.model_name,)
+        patterns = [
+            url(r'^(\d+)/(\d+)/dc/$', self.wrap(self.delete_course), name="%s_%s_dc" %app_model_name),
+        ]
+        return patterns
+    search_fields = ['qq','name']
     show_search_form = True
-    show_actions = True
-    # 组合搜索
-    comb_filter = [
-        v1.FilterOption("gender",is_choice=True),
+    comb_filter = {
+        v1.FilterOption('gender',is_choice=True),
         v1.FilterOption('status',is_choice=True),
-    ]
-v1.site.register(models.Customer, CustomerConfig)
+
+    }
+v1.site.register(models.Customer,CustomerConfig)
+
+
 class ConsultRecordConfig(v1.StarkConfig):
     def customer_display(self,obj=None,is_header=False):
         if is_header:
