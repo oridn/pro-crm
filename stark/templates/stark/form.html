@@ -8,8 +8,9 @@
                     {{ dic.item }}
                     {% if dic.is_popup %}
                         <a onclick="popup('{{ dic.popup_url }}')">popup按钮</a>
+{#                         <a onclick="popUp('{{ dic.popup_url }}')" class="glyphicon glyphicon-search"></a>#}
                     {% endif %}
-                    {{ dic.item.field.errors.0 }}
+                    {{ dic.item.errors.0 }}
                 </div>
             </div>
         </div>

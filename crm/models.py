@@ -78,7 +78,7 @@ class ClassList(models.Model):
     graduate_date = models.DateField(verbose_name="结业日期", null=True, blank=True)
     memo = models.CharField(verbose_name='说明', max_length=256, blank=True, null=True, )
     teachers = models.ManyToManyField(verbose_name='任课老师', to='UserInfo', related_name='teach_classes')
-    tutor = models.ForeignKey(verbose_name='班主任', to='UserInfo', related_name='classes')
+    tutor = models.ForeignKey(verbose_name='班主任', to='UserInfo', related_name='classes',limit_choices_to={'depart_id':104})
 
     def __str__(self):
         return "{0}({1}期)".format(self.course.name, self.semester)
@@ -166,7 +166,7 @@ class Customer(models.Model):
         default=2,
         help_text=u"选择客户此时的状态"
     )
-    consultant = models.ForeignKey(verbose_name="课程顾问", to='UserInfo', related_name='consultant',limit_choices_to={'depart_id':1001})
+    consultant = models.ForeignKey(verbose_name="课程顾问", to='UserInfo', related_name='consultant',limit_choices_to={'depart_id':101})
     date = models.DateField(verbose_name="咨询日期", auto_now_add=True)
     last_consult_date = models.DateField(verbose_name="最后跟进日期", auto_now_add=True)
 

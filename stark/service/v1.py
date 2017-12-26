@@ -6,10 +6,9 @@ from django.urls import reverse
 from django.http import QueryDict
 from django.db.models import Q
 class FilterOption(object):
-    def __init__(self,field_name,multi=False,condition=None,is_choice=False):
+    def __init__(self,field_name,multi=False,condition=None,is_choice=False,text_func_name=None,val_text_func_name=None):
         """
-
-        :param field_name: 字段
+        :param field_name:  字段
         :param multi:  是否多选
         :param condition: 显示数据的筛选条件
         :param is_choice: 是否是choice
@@ -19,6 +18,10 @@ class FilterOption(object):
         self.is_choice = is_choice
 
         self.condition = condition
+        self.text_func_name=text_func_name
+        self.val_func_name=val_text_func_name
+
+
 
     def get_queryset(self,_field):
         if self.condition:
@@ -55,7 +58,8 @@ class FilterRow(object):
             if self.option.is_choice:
                 pk,text = str(val[0]),val[1]
             else:
-                pk,text = str(val.pk), str(val)
+                text = self.option.text_func_name(val) if self.option.text_func_name else str(val)
+                pk = str(self.option.val_func_name(val)) if self.option.val_func_name else str(val.pk)
             # 当前URL？option.field_name
             # 当前URL？gender=pk
             # self.request.path_info # http://127.0.0.1:8005/arya/crm/customer/?gender=1&id=2
@@ -102,6 +106,8 @@ class ChangeList(object):
         self.show_actions = config.get_show_actions()
         self.comb_filter = config.get_comb_filter()
 
+        self.edit_link=config.get_edit_link()
+
         # 搜索用
         self.show_search_form = config.get_show_search_form()
         self.search_form_val = config.request.GET.get(config.search_key,'')
@@ -109,7 +115,7 @@ class ChangeList(object):
         from utils.pager import Pagination
         current_page = self.request.GET.get('page', 1)
         total_count = queryset.count()
-        page_obj = Pagination(current_page, total_count, self.request.path_info, self.request.GET, per_page_count=5)
+        page_obj = Pagination(current_page, total_count, self.request.path_info, self.request.GET, per_page_count=10)
         self.page_obj = page_obj
 
         self.data_list = queryset[page_obj.start:page_obj.end]
@@ -155,9 +161,11 @@ class ChangeList(object):
                     val = getattr(row,field_name) # # 2 alex2
                 else:
                     val = field_name(self.config,row)
+                    # 用于定制编辑列
+                if field_name in self.edit_link:
+                    val = self.edit_link_tag(row.pk,val)
                 temp.append(val)
             new_data_list.append(temp)
-
         return new_data_list
 
     def gen_comb_filter(self):
@@ -194,8 +202,13 @@ class ChangeList(object):
             # 可迭代对象
             yield row
 
-class StarkConfig(object):
+    def edit_link_tag(self,pk,text):
+        query_str=self.request.GET.urlencode()
+        params=QueryDict(mutable=True)
+        params[self.config._query_param_key] = query_str
+        return mark_safe('<a href="%s?%s">%s</a>' % (self.config.get_change_url(pk), params.urlencode(), text,))
 
+class StarkConfig(object):
     # 1. 定制列表页面显示的列
     def checkbox(self,obj=None,is_header=False):
         if is_header:
@@ -224,10 +237,18 @@ class StarkConfig(object):
         data = []
         if self.list_display:
             data.extend(self.list_display)
-            data.append(StarkConfig.edit)
+            # data.append(StarkConfig.edit)
             data.append(StarkConfig.delete)
             data.insert(0,StarkConfig.checkbox)
         return data
+
+    edit_link = []
+
+    def get_edit_link(self):
+        result = []
+        if self.edit_link:
+            result.extend(self.edit_link)
+        return result
 
     # 2. 是否显示添加按钮
     show_add_btn = True
@@ -358,7 +379,6 @@ class StarkConfig(object):
             ret = action_func(request)
             if ret:
                 return ret
-
         comb_condition = {}
         option_list = self.get_comb_filter()
         for key in request.GET.keys():
@@ -368,16 +388,12 @@ class StarkConfig(object):
                 if option.field_name == key:
                     flag = True
                     break
-
             if flag:
                 comb_condition["%s__in" %key] = value_list
-
         queryset = self.model_class.objects.filter(self.get_search_condition()).filter(**comb_condition).distinct()
-
 
         cl = ChangeList(self,queryset)
         return render(request,'stark/changelist.html',{'cl':cl})
-
     def add_view(self,request,*args,**kwargs):
         print('============1')
         model_form_class = self.get_model_form_class()
@@ -442,10 +458,6 @@ class StarkConfig(object):
                 list_url = "%s?%s" %(self.get_list_url(),list_query_str,)
                 return redirect(list_url)
             return render(request, 'stark/change_view.html', {'form': form})
-
-
-
-        return HttpResponse('修改')
 
     def delete_view(self,request,nid,*args,**kwargs):
         self.model_class.objects.filter(pk=nid).delete()
